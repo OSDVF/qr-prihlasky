@@ -1,10 +1,22 @@
 <script setup lang="ts">
+import { useTemplateRef } from 'vue';
 
+const video = useTemplateRef<HTMLVideoElement>('video');
+navigator.mediaDevices.getUserMedia({ video: true, audio: false }).then(stream => {
+  if(video.value) {
+    video.value.srcObject = stream;
+    video.value.play();
+  }
+}).catch(err => {
+  alert(err);
+})
 </script>
 
 <template>
   <div>
-    
+    <video ref="video">
+    </video>
+    <button @click=""></button>
   </div>
 </template>
 
