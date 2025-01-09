@@ -2,9 +2,21 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import childProcess from 'child_process'
+
+const __commitMessageTime = JSON.stringify(childProcess.execSync('git log -1 --pretty="%B %cI"').toString().trim())
+const __commitHash = `'${childProcess.execSync('git describe --tags --abbrev=1 --always').toString().trim()}'`
+const __compileTime = `'${new Date().getTime().toString()}'`
+const __compileTimeZone = `'${new Date().getTimezoneOffset().toString()}'`
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: {
+    __commitMessageTime,
+    __commitHash,
+    __compileTime,
+    __compileTimeZone
+  },
   plugins: [
     vue(),
     VitePWA({

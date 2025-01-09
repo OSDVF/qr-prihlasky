@@ -1,0 +1,51 @@
+name: build
+'on': push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - 
+        name: Inject secrets
+        run: echo '${{ secrets.ENV }}' > .env
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache node modules
+        id: cache-bun
+        uses: actions/cache@v4
+        env:
+          cache-name: cache-node-modules
+        with:
+          path: ~/.bun
+          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/bun.lockb') }}
+          restore-keys: |
+            ${{ runner.os }}-build-${{ env.cache-name }}-
+            ${{ runner.os }}-build-
+            ${{ runner.os }}-
+
+      - if: ${{ steps.cache-bun.outputs.cache-hit != 'true' }}
+        name: List the state of node modules
+        continue-on-error: true
+        run: bun pm ls
+
+      - name: Install dependencies
+        run: bun install
+        
+      - name: Run postinstall scripts
+        run: bun pm trust --all
+
+      - name: Build
+        run: bun run build
+
+      - name: Archive distribution artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist
+          path: |
+            dist

@@ -11,6 +11,7 @@ enum Dialogs {
 
 const root = ref<HTMLElement>()
 const doScan = ref(true);
+const showInfo = ref(false)
 const inversionMode = ref(false)
 const dialog = ref<Dialogs>()
 const defaultDialog = {
@@ -250,11 +251,25 @@ function closeDialog() {
   dialogData.value = defaultDialog;
   if (doScan.value) qrScanner?.start()
 }
+
+function leadingPlus(value: number) {
+  return value > 0 ? `+${value}` : value
+}
+const lang = navigator.language
+declare const __commitMessageTime: string
+declare const __commitHash: string
+declare const __compileTime: string
+declare const __compileTimeZone: string
+
+const commitMessageTime = __commitMessageTime
+const commitHash = __commitHash
+const compileTime = __compileTime
+const compileTimeZone = __compileTimeZone
 </script>
 
 <template>
   <div ref="root">
-    <video ref="video">
+    <video ref="video" @dblclick="showInfo = true">
     </video>
 
     <div id="buttons">
@@ -285,6 +300,11 @@ function closeDialog() {
       <div>{{ toast.message }}</div>&ensp;
       <button @click="removeToast(toast.id)">OK</button>
     </dialog>
+    <small style="position: absolute; top:2px; left:2px; text-align: left;" v-if="showInfo">
+      Verze {{ commitHash }} ({{ commitMessageTime }}) <br>
+      Sestavena {{ new Date(parseInt(compileTime)).toLocaleString(lang) }}{{ leadingPlus(-parseInt(compileTimeZone) /
+        60) }}
+    </small>
   </div>
 </template>
 
@@ -341,7 +361,7 @@ function closeDialog() {
   left: 0;
   right: 0;
   max-width: 100vw;
-  background: #b6b6b6;
+  background: #6d6d6d;
   border: 0;
   display: flex;
   justify-content: space-between;
