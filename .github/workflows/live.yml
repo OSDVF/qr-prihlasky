@@ -4,7 +4,7 @@ name: live
   workflow_dispatch:
 jobs:
   deploy:
-    if: github.event.deployment.payload == 'firebase'
+    if: github.event.deployment.payload == 'firebase' || github.event_name == 'workflow_dispatch'
     permissions:
       id-token: write
       contents: read
@@ -27,7 +27,7 @@ jobs:
           token: '${{ github.token }}'
           environment: live
 
-      - run: mkdir -p .output/public
+      - run: mkdir -p dist
 
       - name: Download distribution artifact
         uses: dawidd6/action-download-artifact@v2
@@ -35,7 +35,7 @@ jobs:
           workflow: build.yml
           workflow_conclusion: success
           name: dist
-          path: .output/public
+          path: dist
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
