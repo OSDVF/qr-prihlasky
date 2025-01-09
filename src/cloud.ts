@@ -1,41 +1,49 @@
-import { collection } from 'firebase/firestore'
-import { computed, type App, type ComputedRef } from 'vue'
+import { collection, query, where } from 'firebase/firestore'
+import { type App, type ComputedRef } from 'vue'
 import { useFirestore, useCollection, type VueFirestoreQueryData } from 'vuefire'
 
-export type SubmissionState = { name?: string, surname?: string, email: string, price?: string, paid?: boolean }
+export type SubmissionState = { name?: string, surname?: string, email?: string, price?: string, paid?: boolean }
+export type Code<T> = { code: string} & T
 
 export default {
     install(app: App) {
         const firestore = useFirestore()
-        const submissions = computed(() => useCollection<SubmissionState>(firestore ? collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions') : null, {
+        const submissions = useCollection<SubmissionState>(query(collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions'), where("price", ">", '') ), {
             wait: true
-        }).value)
+        })
 
 
-        function searchSubmission(codeOrNameOrEmail: string, surnameOrEmailOnly?: string | true): SubmissionState | undefined {
+        function searchSubmission(codeOrNameOrEmail: string, surnameOrEmailOnly?: string | true): Code<SubmissionState>[] {
             if (!submissions.value || !submissions.value.length) {
                 throw 'Databáze ještě nebyla načtena'
             }
             const cLower = codeOrNameOrEmail.toLowerCase()
+            const candidates = new Set<Code<SubmissionState>>()
 
             for (const submission of submissions.value) {
                 let nameMatches = 0
 
                 if (surnameOrEmailOnly === true) {
-                    if (submission.email.trim().toLowerCase() == cLower.trim()) {
-                        return submission
+                    if (submission.email?.trim().toLowerCase() == cLower.trim()) {
+                        candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                        continue
                     }
                 }
                 else {
+                    let codeMatch = false
                     for (const c of cLower.split(' ')) {
                         if (submission.id.substring(7, 14).toLowerCase() === c) {
-                            return submission
+                            candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                            codeMatch = true
+                            break
                         }
 
                         if (submission.name?.trim().toLowerCase().includes(c)) {
                             nameMatches++
                         }
                     }
+                    if(codeMatch) continue
+
                     if (surnameOrEmailOnly) {
                         for (const s of surnameOrEmailOnly.trim().toLowerCase().split(' ')) {
                             if (submission.surname?.trim().toLowerCase().includes(s)) {
@@ -46,9 +54,11 @@ export default {
                 }
 
                 if (nameMatches >= 2) {
-                    return submission
+                    candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                    continue
                 }
             }
+            return Array.from(candidates)
         }
         app.config.globalProperties.$searchSubmission = searchSubmission
         app.config.globalProperties.$submissions = submissions
@@ -57,5 +67,5 @@ export default {
     }
 }
 
-export type searchSubmission = (codeOrNameOrEmail: string, surnameOrEmailOnly?: string | true) => SubmissionState | undefined
+export type searchSubmission = (codeOrNameOrEmail: string, surnameOrEmailOnly?: string | true) => Code<SubmissionState>[]
 export type submissions = ComputedRef<VueFirestoreQueryData<SubmissionState>>

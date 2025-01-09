@@ -4,7 +4,7 @@ import QrScanner from 'qr-scanner';
 import DialogBox from './Dialog.vue'
 import Manual from './Manual.vue';
 
-import type { submissions, SubmissionState, searchSubmission } from './cloud'
+import type { submissions, SubmissionState, searchSubmission, Code } from './cloud'
 enum Dialogs {
   Manual, Dialog
 }
@@ -84,9 +84,17 @@ function showToast(message: string) {
   nextTick(() => toastElem.value?.[toastElem.value.length - 1].show())
 }
 
-function displaySubmissionState(state: SubmissionState | undefined, input: string) {
-  if (state) {
-    showDialog(state.paid ? "Zaplaceno" : "Nezaplaceno", `${state.name} ${state.surname} (${state.email}) ${state.paid ? 'má' : 'NEMÁ'} zaplaceno ${state.price}.\n[Zadáno ${input}]`);
+function displaySubmissionState(state: Code<SubmissionState>[], input: string) {
+  if (state.length) {
+    let difference = false
+    for (let last = state[0], i = 1; i < state.length; last = state[i++]) {
+      if (state[i] != last) {
+        difference = true
+        break
+      }
+    }
+
+    showDialog(difference ? 'Více výsledků' : state[0].paid ? "Zaplaceno" : "Nezaplaceno", state.map(s => `${s.name ?? ''} ${s.surname ?? ''} (${s.email}, ${s.code}) ${s.paid ? 'má' : 'NEMÁ'} zaplaceno ${s.price}`).join("\n") + `\n[Zadáno ${input}]`);
   } else {
     if (typeof dialog === 'undefined') {
       showDialog("Chyba", `Nenalezeno v databázi: ${input}`);
@@ -154,8 +162,8 @@ function manual(e: SubmitEvent) {
 
     if (code) {
       codeResult = searchSubmission(code);
-      if (codeResult) {
-        if (codeResult.paid) {
+      if (codeResult.length) {
+        if (codeResult.some(r => r.paid)) {
           displaySubmissionState(codeResult, code)
           return
         }
@@ -164,7 +172,7 @@ function manual(e: SubmitEvent) {
 
     if (email) {
       emailResult = searchSubmission(email, true);
-      if (emailResult) {
+      if (emailResult.length) {
         displaySubmissionState(emailResult, email)
         return
       }
@@ -172,13 +180,13 @@ function manual(e: SubmitEvent) {
 
     if (name && surname) {
       namesResult = searchSubmission(name, surname);
-      if (namesResult) {
+      if (namesResult.length) {
         displaySubmissionState(namesResult, `${name} ${surname}`)
         return
       }
     }
 
-    displaySubmissionState(codeResult || emailResult || namesResult, code || email || `${name} ${surname}`)
+    displaySubmissionState(codeResult || emailResult || namesResult || [], code || email || `${name} ${surname}`)
   } catch (e) {
     showErrorDialog(e)
   }
@@ -264,6 +272,19 @@ function closeDialog() {
   left: 50%;
   bottom: 20px;
   transform: translateX(-50%);
+}
+
+@media screen and (orientation: landscape) {
+  #buttons {
+    width: 50px;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    bottom: 50%;
+    transform: translateY(50%);
+    right: 20px;
+    left: unset;
+  }
 }
 
 .button {
