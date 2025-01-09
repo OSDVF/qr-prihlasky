@@ -56,6 +56,26 @@ onMounted(() => {
 
     })
   }
+
+  let networkToast: number | undefined
+  function offlineToast() {
+    if (typeof networkToast === 'undefined') {
+      networkToast = showToast('🖧 Bez internetu. Data jsou offline.')
+    }
+  }
+  if (!navigator.onLine) {
+    offlineToast()
+  }
+
+  window.addEventListener('offline', offlineToast)
+  window.addEventListener('online', () => {
+    if (typeof networkToast != 'undefined') {
+      removeToast(networkToast)
+      networkToast = undefined
+    }
+
+    showToast('🖧 Připojení obnoveno')
+  })
 })
 function orientationChange(_: DeviceOrientationEvent) {
   canRotate.value = true
@@ -77,11 +97,13 @@ function removeToast(id: number) {
 }
 
 function showToast(message: string) {
-  toasts.value.push({ id: toastId++, message })
+  const myId = toastId++
+  toasts.value.push({ id: myId, message })
   setTimeout(() => {
-    removeToast(toastId - 1)
+    removeToast(myId)
   }, 5000)
   nextTick(() => toastElem.value?.[toastElem.value.length - 1].show())
+  return myId
 }
 
 function displaySubmissionState(state: Code<SubmissionState>[], input: string) {
@@ -319,7 +341,7 @@ function closeDialog() {
   left: 0;
   right: 0;
   max-width: 100vw;
-  opacity: .5;
+  background: #b6b6b6;
   border: 0;
   display: flex;
   justify-content: space-between;
