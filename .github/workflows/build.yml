@@ -8,9 +8,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - 
-        name: Inject secrets
+      - name: Inject secrets
         run: echo '${{ secrets.ENV }}' > .env
+
+      - name: Inject Sentry secrets
+        run: echo '${{ secrets.SENTRY_AUTH_TOKEN }}' > .env.sentry-build-plugin
 
       - uses: oven-sh/setup-bun@v1
         with:

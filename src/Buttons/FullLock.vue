@@ -12,11 +12,12 @@ const p = defineProps<{
 }>()
 
 const canRotate = ref(false)
-const locked = ref((screen.orientation.type?.startsWith('portrait') && screen.availHeight < screen.availWidth) || (screen.orientation.type?.startsWith('landscape') && screen.availWidth < screen.availHeight))
+const locked = ref(typeof screen.orientation !== 'undefined' && ((screen.orientation?.type?.startsWith('portrait') && screen.availHeight < screen.availWidth) || (screen.orientation?.type?.startsWith('landscape') && screen.availWidth < screen.availHeight)))
 
 onMounted(() => {
-    if ((screen.orientation as any).lock && window.DeviceOrientationEvent)
+    if (window.DeviceOrientationEvent && typeof (screen.orientation as any)?.lock === 'function') {
         window.addEventListener('deviceorientation', orientationChange)
+    }
 })
 
 function orientationChange(_: DeviceOrientationEvent) {
@@ -26,7 +27,7 @@ function orientationChange(_: DeviceOrientationEvent) {
 
 function toggleLock() {
     if (locked.value) {
-        if (screen.orientation.unlock) {
+        if (screen.orientation?.unlock) {
             screen.orientation.unlock()
         }
         document.exitFullscreen()
@@ -35,7 +36,7 @@ function toggleLock() {
     else {
         if (p.root) {
             p.root.requestFullscreen({ navigationUI: 'hide' }).then(() => {
-                (screen.orientation as any).lock(screen.orientation.type)
+                (screen.orientation as any)?.lock(screen.orientation?.type)
                 locked.value = true
             })
         }
