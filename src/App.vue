@@ -3,6 +3,7 @@ import { inject, nextTick, onMounted, ref, useTemplateRef, watch } from 'vue';
 import QrScanner from 'qr-scanner';
 import DialogBox from './Dialog.vue'
 import Manual from './Manual.vue';
+import FullLock from './Buttons/FullLock.vue';
 
 import type { submissions, SubmissionState, searchSubmission, Code } from './cloud'
 enum Dialogs {
@@ -10,7 +11,8 @@ enum Dialogs {
 }
 
 const root = ref<HTMLElement>()
-const doScan = ref(true);
+const hasFlash = ref(false)
+const doScan = ref(true)
 const showInfo = ref(false)
 const inversionMode = ref(false)
 const dialog = ref<Dialogs>()
@@ -19,8 +21,7 @@ const defaultDialog = {
   title: '',
 }
 const dialogData = ref<{ content: string, title: string, button?: string }>(defaultDialog)
-const canRotate = ref(false)
-const locked = ref((screen.orientation.type.startsWith('portrait') && screen.availHeight < screen.availWidth) || (screen.orientation.type.startsWith('landscape') && screen.availWidth < screen.availHeight))
+
 const toasts = ref<{ id: number, message: string }[]>([])
 let toastId = 0;
 const toastElem = useTemplateRef<HTMLDialogElement[]>('toastElem');
@@ -40,9 +41,8 @@ onMounted(() => {
     });
 
     qrScanner.start().catch(() => doScan.value = false);
+    qrScanner.hasFlash().then(h => hasFlash.value = h)
   }
-  if (window.DeviceOrientationEvent)
-    window.addEventListener('deviceorientation', orientationChange)
   function loaded() {
     showToast(`Načteno ${submissions.value.length} přihlášek`)
   }
@@ -77,11 +77,15 @@ onMounted(() => {
 
     showToast('🖧 Připojení obnoveno')
   })
+
+  document.addEventListener('visibilitychange', () => {
+    if(document.hidden === true) {
+      qrScanner?.stop()
+    } else if (document.hidden === false && doScan.value) {
+      qrScanner?.start()
+    }
+  }, false)
 })
-function orientationChange(_: DeviceOrientationEvent) {
-  canRotate.value = true
-  window.removeEventListener('deviceorientation', orientationChange)
-}
 
 watch(doScan, (value) => {
   if (qrScanner) {
@@ -215,37 +219,6 @@ function manual(e: SubmitEvent) {
   }
 }
 
-const lockOrientationUniversal =
-  (screen as any).lockOrientation ||
-  (screen as any).mozLockOrientation ||
-  (screen as any).msLockOrientation;
-
-const unlockOrientation =
-  (screen as any).unlockOrientation ||
-  (screen as any).mozUnlockOrientation ||
-  (screen as any).msUnlockOrientation ||
-  (screen.orientation && screen.orientation.unlock);
-
-function toggleLock() {
-  if (locked.value) {
-    if (unlockOrientation) {
-      unlockOrientation()
-      locked.value = false
-    }
-  }
-  else {
-    if (root.value) {
-      root.value.requestFullscreen({ navigationUI: 'show' })
-    }
-    if ((screen.orientation as any).lock) {
-      (screen.orientation as any).lock('any')
-    } else if (lockOrientationUniversal) {
-      lockOrientationUniversal('default')
-    }
-    locked.value = true
-  }
-}
-
 function closeDialog() {
   dialog.value = undefined;
   dialogData.value = defaultDialog;
@@ -268,7 +241,7 @@ const compileTimeZone = __compileTimeZone
 </script>
 
 <template>
-  <div ref="root">
+  <div ref="root" style="max-height: 100vh; overflow-y: clip">
     <video ref="video" @dblclick="showInfo = true">
     </video>
 
@@ -277,19 +250,16 @@ const compileTimeZone = __compileTimeZone
         :title="`${doScan ? 'Zastavit' : 'Spustit'} skenování`">
         {{ doScan ? '⏹' : '▶' }}
       </button>
-      <button title="Svítilna" @click="qrScanner?.toggleFlash()">🔦</button>
-      <button title="Převrátit bravy" @click="inversionMode = !inversionMode">
+      <button class="button" v-if="hasFlash" title="Svítilna" @click="qrScanner?.toggleFlash()">🔦</button>
+      <button class="button" title="Převrátit bravy" @click="inversionMode = !inversionMode">
         {{ inversionMode ? '🔲' : '🔳' }}
       </button>
-      <button title="Ze souboru..." @click="qrScanner?.stop(); $refs.file.click()">
+      <button class="button" title="Ze souboru..." @click="qrScanner?.stop(); $refs.file.click()">
         <input type="file" @change="fromFile" ref="file" style="display: none;" />
         📂
       </button>
-      <button title="Zadat ručně" @click="qrScanner?.stop(); dialog = Dialogs.Manual">🔤</button>
-      <button v-if="canRotate" title="Zamkout otáčení obrazovky" @click="toggleLock">
-        {{ locked ? '🔒' : '🔓' }}
-      </button>
-
+      <button class="button" title="Zadat ručně" @click="qrScanner?.stop(); dialog = Dialogs.Manual">🔤</button>
+      <FullLock class="button" :root="root" />
     </div>
     <div class="dialog" v-show="typeof dialog !== 'undefined'">
       <DialogBox v-if="dialog == Dialogs.Dialog" :button="dialogData.button" :title="dialogData.title"
@@ -312,8 +282,9 @@ const compileTimeZone = __compileTimeZone
 #buttons {
   position: absolute;
   left: 50%;
-  bottom: 20px;
+  bottom: 25px;
   transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 @media screen and (orientation: landscape) {
@@ -321,10 +292,10 @@ const compileTimeZone = __compileTimeZone
     width: 50px;
     display: flex;
     align-items: center;
-    flex-direction: column;
+    flex-direction: column-reverse;
     bottom: 50%;
     transform: translateY(50%);
-    right: 20px;
+    right: 50px;
     left: unset;
   }
 }
@@ -348,6 +319,13 @@ const compileTimeZone = __compileTimeZone
   bottom: 0;
   background: #262626a4;
   backdrop-filter: blur(2px);
+  max-width: 100vw;
+}
+
+@media screen and (max-width: 768px) {
+  .dialog {
+    padding: .5rem;
+  }
 }
 
 .dialog>* {
@@ -369,5 +347,6 @@ const compileTimeZone = __compileTimeZone
 
 video {
   max-width: 100%;
+  max-height: 100vh;
 }
 </style>
