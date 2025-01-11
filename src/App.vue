@@ -79,7 +79,7 @@ onMounted(() => {
   })
 
   document.addEventListener('visibilitychange', () => {
-    if(document.hidden === true) {
+    if (document.hidden === true) {
       qrScanner?.stop()
     } else if (document.hidden === false && doScan.value) {
       qrScanner?.start()
@@ -123,10 +123,12 @@ function displaySubmissionState(state: Code<SubmissionState>[], input: string) {
 
     showDialog(difference ? 'Více výsledků' : state[0].paid ? "Zaplaceno" : "Nezaplaceno", state.map(s => `${s.name ?? ''} ${s.surname ?? ''} (${s.email}, ${s.code}) ${s.paid ? 'má' : 'NEMÁ'} zaplaceno ${s.price}`).join("\n") + `\n[Zadáno ${input}]`);
   } else {
-    if (typeof dialog === 'undefined') {
+    if (typeof dialog.value === 'undefined') {
       showDialog("Chyba", `Nenalezeno v databázi: ${input}`);
     } else {
+      qrScanner?.stop()
       alert(`Nenalezeno v databázi: ${input}`)
+      if (doScan.value) qrScanner?.start()
     }
   }
 }
