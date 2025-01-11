@@ -242,7 +242,7 @@ const compileTimeZone = __compileTimeZone
 
 <template>
   <div ref="root" style="max-height: 100vh; overflow-y: clip">
-    <video ref="video" @dblclick="showInfo = true">
+    <video ref="video" @dblclick="showInfo = true" playsinline muted>
     </video>
 
     <div id="buttons">

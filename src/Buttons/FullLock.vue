@@ -1,5 +1,5 @@
 <template>
-    <button title="Celá obrazovka" @click="toggleLock">
+    <button v-if="canRotate" title="Celá obrazovka" @click="toggleLock">
         {{ locked ? '⇲' : '⛶' }}
     </button>
 </template>

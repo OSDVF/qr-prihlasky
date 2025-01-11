@@ -2,6 +2,7 @@ import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import mkcert from 'vite-plugin-mkcert'
 import childProcess from 'child_process'
 
 const __commitMessageTime = JSON.stringify(childProcess.execSync('git log -1 --pretty="%B %cI"').toString().trim())
@@ -18,6 +19,7 @@ export default defineConfig({
     __compileTimeZone
   },
   plugins: [
+    mkcert(),
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
