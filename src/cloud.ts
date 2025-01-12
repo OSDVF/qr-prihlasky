@@ -1,4 +1,4 @@
-import { collection, query, where } from 'firebase/firestore'
+import { collection, or, query, where } from 'firebase/firestore'
 import { type App, type ComputedRef } from 'vue'
 import { useFirestore, useCollection, type VueFirestoreQueryData } from 'vuefire'
 
@@ -8,7 +8,7 @@ export type Code<T> = { code: string} & T
 export default {
     install(app: App) {
         const firestore = useFirestore()
-        const submissions = useCollection<SubmissionState>(query(collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions'), where("price", ">", '') ), {
+        const submissions = useCollection<SubmissionState>(query(collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions'), or(where("price", ">", ''), where("price", ">", 0)) ), {
             wait: true
         })
 
