@@ -8,7 +8,7 @@ export type Code<T> = { code: string} & T
 export default {
     install(app: App) {
         const firestore = useFirestore()
-        const submissions = useCollection<SubmissionState>(query(collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions'), or(where("price", ">", ''), where("price", ">", 0)) ), {
+        const submissions = useCollection<SubmissionState>(query(collection(firestore, import.meta.env.VITE_FIRESTORE_COLLECTION ?? 'submissions'), or(where("price", ">", ''), where("price", ">=", 0)) ), {
             wait: true
         })
 
@@ -19,13 +19,16 @@ export default {
             }
             const cLower = codeOrNameOrEmail.toLowerCase()
             const candidates = new Set<Code<SubmissionState>>()
-
+            
             for (const submission of submissions.value) {
+                function addCandidate() {
+                    candidates.add({ code: submission.id.substring(7, 14), paid: submission.paid || parseFloat(submission.price ?? '1') == 0, ...submission })
+                }
                 let nameMatches = 0
 
                 if (surnameOrEmailOnly === true) {
                     if (submission.email?.trim().toLowerCase() == cLower.trim()) {
-                        candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                        addCandidate()
                         continue
                     }
                 }
@@ -33,7 +36,7 @@ export default {
                     let codeMatch = false
                     for (const c of cLower.split(' ')) {
                         if (submission.id.substring(7, 14).toLowerCase() === c) {
-                            candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                            addCandidate()
                             codeMatch = true
                             break
                         }
@@ -54,7 +57,7 @@ export default {
                 }
 
                 if (nameMatches >= 2) {
-                    candidates.add({ code: submission.id.substring(7, 14), ...submission })
+                    addCandidate()
                     continue
                 }
             }
