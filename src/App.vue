@@ -176,11 +176,11 @@ function showDialog(title: string, content: string, button?: string) {
 
 function manual(e: SubmitEvent) {
   e.preventDefault()
-  const data = new FormData(e.target as HTMLFormElement);
-  const name = data.get('name') as string;
-  const surname = data.get('surname') as string;
-  const email = data.get('email') as string;
-  const code = data.get('code') as string;
+  const data = new FormData(e.target as HTMLFormElement)
+  const name = (data.get('name') as string).trim()
+  const surname = (data.get('surname') as string).trim()
+  const email = (data.get('email') as string).trim()
+  const code = (data.get('code') as string).trim()
   if (!(code || email || name && surname)) {
     alert('Musíte vyplnit alespoň jednu kategorii')
     return
@@ -253,7 +253,7 @@ const compileTimeZone = __compileTimeZone
         {{ doScan ? '⏹' : '▶' }}
       </button>
       <button class="button" v-if="hasFlash" title="Svítilna" @click="qrScanner?.toggleFlash()">🔦</button>
-      <button class="button" title="Převrátit bravy" @click="inversionMode = !inversionMode">
+      <button class="button" title="Převrátit bravy" @click="inversionMode = !inversionMode" v-if="showInfo">
         {{ inversionMode ? '🔲' : '🔳' }}
       </button>
       <button class="button" title="Ze souboru..." @click="qrScanner?.stop(); $refs.file.click()">
